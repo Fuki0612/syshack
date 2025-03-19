@@ -1,4 +1,4 @@
-import { notojp, delagothicone } from "../font"
+import { notojp, delagothicone, kiwimaru } from "../font"
 
 export default function Home() {
   return (
@@ -11,9 +11,9 @@ export default function Home() {
         <p className={`text-left font-bold text-5xl w-40`}>鉄チン</p>
         <p className={`text-center text-4xl`}></p>
       </div>
-      <div className="flex space-x-20 items-center px-10 py-5">
-        <p className={`text-left font-bold text-5xl w-40`}>チャイ</p>
-        <p className={`text-center text-4xl`}></p>
+      <div className="flex space-x-20 items-center px-10 py-5 shadow-xl bg-gradient-to-r from-cyan-200 to-purple-200">
+        <p className={`${kiwimaru.className} text-left text-5xl w-40`}>チャイ</p>
+        <p className={`${kiwimaru.className} text-center text-5xl`}>OK</p>
       </div>
     </div>
   );
