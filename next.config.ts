@@ -6,8 +6,9 @@ const nextConfig: NextConfig = {
 
 module.exports = {
   images: {
-    domains: ['picsum.photos']
-  }
+      domains: ["i.ytimg.com"],
+  },
+  // その他の設定…
 };
 
 export default nextConfig;
