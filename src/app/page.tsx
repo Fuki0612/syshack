@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 export default async function Home() {
-  const API_KEY = process.env.YOUTUBE_API_KEY;
+  const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   if (!API_KEY) {
     return <div>APIキーが設定されていません</div>;
   }
@@ -15,20 +15,34 @@ export default async function Home() {
   );
   
   if (!res.ok) {
-    return <div>動画情報を取得できませんでした</div>;
+    const errorText = await res.text(); // 追加: エラーメッセージを取得
+    return <div>動画情報を取得できませんでした: {errorText}</div>;
   }
   
   const data = await res.json();
-  const videos = data.items; 
+  const videos = data.items?.[0];  
   console.log(videos[0]); // 1番目の動画情報をコンソールに表示. 実行中の画面でF12を押してコンソールを開くと確認できます
+
+  if (!videos) {
+    return <div>急上昇動画が見つかりませんでした</div>;
+  }
 
   return (
     <div className="flex flex-col min-h-screen w-screen h-100% pt-10 justify-center items-center gap-5">
+      {/* サムネイル */}
       <div style={{ width: "30%", height: "30%", position: "relative" }}>
-        <Image alt="0" src="https://picsum.photos/1600/900" width={1600} height={900} />
-      </div>
-      <p>ここにタイトル。</p>
-      <p>ここにチャンネル名。</p>
+        <img
+        alt={videos.snippet.title} 
+        src={videos.snippet.thumbnails.high.url}
+        width={1280} 
+        height={720} 
+        className="rounded-lg shadow-lg"/>
+      </div> 
+      {/* タイトル */}
+      <p className="text-2xl font-bold text-center">{videos.snippet.title}</p>
+      {/* チャンネル名 */}
+      <p className="text-lg text-gray-600">チャンネル: {videos.snippet.channelTitle}</p>
     </div>
   );
 }
+// console.log("APIキー:", process.env.YOUTUBE_API_KEY);
