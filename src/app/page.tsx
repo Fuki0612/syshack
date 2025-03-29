@@ -9,31 +9,33 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [videos, setVideos] = useState([]);
   const [now, setNow] = useState('急上昇');
-  const [cat, setCat] = useState<string>('0')
-  const handleClick = (category: string) => {
+  const [cat, setCat] = useState<string>('');
+  const [searchParams, setSearchParams] = useState<string>('');
+  const handleClick = (category: string = '急上昇') => {
     switch (category) {
       case '急上昇':
-        setCat('0');
+        setCat('chart=mostPopular&videoCategoryId=0');
         setNow('急上昇');
         break;
       case 'スポーツ':
-        setCat('17');
+        setCat('chart=mostPopular&videoCategoryId=17');
         setNow('スポーツ');
         break;
       case '音楽':
-        setCat('10');
+        setCat('chart=mostPopular&videoCategoryId=10');
         setNow('音楽');
         break;
       case 'ゲーム':
-        setCat('20');
+        setCat('chart=mostPopular&videoCategoryId=20');
         setNow('ゲーム');
         break;
       default:
-        setCat('0');
-        setNow('急上昇');
+        setCat(`q=${searchParams}`);
+        setNow('other');
         break;
     }
   }
+
   useEffect(() => {
     const getData = async () => {
       setLoading(true)
@@ -43,7 +45,8 @@ export default function Home() {
       }
 
       const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?key=${API_KEY}&part=snippet,statistics&chart=mostPopular&regionCode=JP&maxResults=4&videoCategoryId=${cat}`,
+        `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&part=snippet&type=video&regionCode=JP&maxResults=4&${cat}`,
+        // `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&part=snippet&type=video&regionCode=JP&maxResults=4&chart=mostPopular&videoCategoryId=0`,
         { next: { revalidate: 60 } }
       )
 
@@ -53,6 +56,7 @@ export default function Home() {
       }
       
       const data = await res.json();
+      console.log(data)
       setVideos(data.items);
 
       if (!videos) {
@@ -69,11 +73,11 @@ export default function Home() {
   }
   
   return (
-    <div className={`${zenkakugothicnew.className} flex flex-col min-h-screen w-screen p-20 justify-center items-center bg-white`}>
+    <div className={`${zenkakugothicnew.className} flex flex-col min-h-screen w-screen p-15 justify-center items-center bg-white`}>
       <div className="flex flex-col fixed top-0 z-50 bg-indigo-50/70 backdrop-blur-lg w-screen">
       <div className="grid grid-cols-[1fr_20fr_9fr] gap-4 h-12">
         <div></div>
-        <div className="w-full relative h-12 text-3xl content-center font-bold">
+        <div className="w-full relative h-12 text-3xl items-center content-center font-bold">
           {/* <Image
             alt="logo"
             src="/button_channel_touroku.png"
@@ -82,13 +86,17 @@ export default function Home() {
           /> */}
           Youtube
         </div>
-        <div className="content-center relative w-full px-10">
-          <input
-            type="text"
-            placeholder="search"
-            className=" h-7 w-full pl-4 pr-4 placeholder:text-indigo-300 rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none"
-          />
-        </div>
+        <div className="grid grid-cols-[3fr_1fr] content-center items-center relative px-7">
+            <input
+              type="search"
+              name="search"
+              value={searchParams}
+              onChange={(e) => {setSearchParams(e.target.value)}}
+              placeholder="search"
+              className=" w-full pl-4 pr-4 placeholder:text-indigo-300 rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none"
+            />
+            <button type="submit" onClick={() => handleClick(searchParams)} className="w-full h-7 text-xs rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none">検索</button>
+      </div>
       </div>
       <div className="flex flex-row gap-2 content-center h-10 p-1.5 pl-6 top-12">
         <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 ${now == '急上昇' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('急上昇')}>急上昇</button>
