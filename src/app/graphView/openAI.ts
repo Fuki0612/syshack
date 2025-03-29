@@ -39,52 +39,37 @@ async function measureTextSimilarity(query: string, texts: string[]): Promise<nu
 // テキストデータとクエリから、テキストの配置座標を計算する関数
 export async function getData(texts: string[], query: string): Promise<number[][]> {
   if (query === "") {
-      // クエリが空の場合は、単にembeddingを返す
-      return getEmbeddings(texts);
+    // クエリが空の場合は、単にembeddingを返す
+    return getEmbeddings(texts);
   } else {
-      const similarities = await measureTextSimilarity(query, texts);
-      const groups = [
-          { min: 0.8, max: 1.0, radius: 500, indices: [] as number[] },
-          { min: 0.6, max: 0.8, radius: 800, indices: [] as number[] },
-          { min: 0.4, max: 0.6, radius: 1100, indices: [] as number[] },
-          { min: 0.2, max: 0.4, radius: 1400, indices: [] as number[] },
-          { min: 0.0, max: 0.2, radius: 1700, indices: [] as number[] },
-      ];
-      similarities.forEach((sim, i) => {
-          const group = groups.find(g => sim >= g.min && sim < g.max);
-          if (group) {
-              group.indices.push(i);
-          }
-      });
-      // グループごとに同心円上に配置する
-      if (groups[0].indices.length === 0 && groups[1].indices.length === 0 && groups[2].indices.length === 0 && groups[3].indices.length > 0) {
-        groups[3].radius = 500;
-        groups[4].radius = 800;
-      }
-      else if (groups[0].indices.length === 0 && groups[1].indices.length === 0 && groups[2].indices.length > 0) {
-          groups[2].radius = 500;
-          groups[3].radius = 800;
-          groups[4].radius = 1100;
-      }
-      else if (groups[0].indices.length === 0 && groups[1].indices.length > 0) {
-          groups[1].radius = 500;
-          groups[2].radius = 800;
-          groups[3].radius = 1100;
-          groups[4].radius = 1400;
-      }
+    const similarities = await measureTextSimilarity(query, texts);
+    // 各テキストの類似度とインデックスをひとまとめにする
+    const simWithIdx = similarities.map((sim, i) => ({ index: i, sim }));
+    // 類似度の高い順にソート
+    simWithIdx.sort((a, b) => b.sim - a.sim);
+    // 5個ずつのグループに分割
+    const groupSize = 10;
+    const groups: { indices: number[] }[] = [];
+    for (let i = 0; i < simWithIdx.length; i += groupSize) {
+      const groupItems = simWithIdx.slice(i, i + groupSize);
+      groups.push({ indices: groupItems.map(item => item.index) });
+    }
+    // 各グループに対して、グループ番号に応じた半径を設定（例: 1グループ目: 200, 2グループ目: 400, …）
+    const baseRadius = 500;
 
-      // 各グループごとに、同心円上にテキストボックスを配置
-      // （同グループ内ではテキスト数に応じて角度を均等に割り振る）
-      const coordinates: number[][] = new Array(texts.length);
-      groups.forEach(group => {
-          const count = group.indices.length;
-          group.indices.forEach((idx, j) => {
-              // 0～2π のうち均等な角度
-              const angle = (2 * Math.PI * j) / count;
-              coordinates[idx] = [group.radius * Math.cos(angle), group.radius * Math.sin(angle)];
-          });
+    // 各グループごとに、同心円上にテキストボックスを配置
+    // （同グループ内ではテキスト数に応じて角度を均等に割り振る）
+    const coordinates: number[][] = new Array(texts.length);
+    groups.forEach((group, groupIndex) => {
+      const count = group.indices.length;
+      const radius = baseRadius + groupIndex * 200; // 例: 各グループごとに200ずつ拡大
+      group.indices.forEach((idx, j) => {
+        // 0～2π のうち均等な角度
+        const angle = (2 * Math.PI * j) / count;
+        coordinates[idx] = [radius * Math.cos(angle), radius * Math.sin(angle)];
       });
-      return coordinates;
+    });
+    return coordinates;
   }
 }
 

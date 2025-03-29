@@ -15,7 +15,13 @@ type Box = {
 };
 
 export default function CommentGraph({ comments, baseText }: { comments: string[]; baseText: string }) {
-  const coordinateMultiplier = 400; // 座標の倍率
+  let coordinateMultiplier;
+  if (baseText == "") {
+    coordinateMultiplier = 400; // 座標の倍率
+  }
+  else {
+    coordinateMultiplier = 1; // 座標の倍率
+  }
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null); // ドラッグ開始位置
   const [reducedData, setReducedData] = useState<number[][] | null>(null); // 次元削減後のデータ
   const [center, setCenter] = useState({ x: 0, y: 0 }); // 中心座標
@@ -23,31 +29,57 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
   const [fontSize, setFontSize] = useState(14); // フォントサイズ
   const [linkThreshold, setLinkThreshold] = useState(400);
   const [expandedComment, setExpandedComment] = useState<string | null>(null); // 追加：展開するコメント
+  const [centerText, setCenterText] = useState({ x: center.x-50, y: center.y-20, width:100, height:40 }); // 中心テキストの位置
+  const [loading, setLoading] = useState(true); // ローディング状態
   const dragHasMoved = useRef(false);
   let zoomScale = 1; // ズーム倍率
 
   useEffect(() => {
-    async function fetchAndProcessData() {
-      const embeddings = await getData(comments, baseText);
-      const reduced = reduceDimensions(embeddings);
-      if (reduced && reduced.length > 0) {
-        const originalXs = reduced.map(d => d[0]);
-        const originalYs = reduced.map(d => d[1]);
-        const originalMinX = Math.min(...originalXs);
-        const originalMaxX = Math.max(...originalXs);
-        const originalMinY = Math.min(...originalYs);
-        const originalMaxY = Math.max(...originalYs);
-        // 中心が原点になるように各点をシフト
-       const shiftedPos = reduced.map(d => [
-          d[0] - (originalMinX + originalMaxX) / 2,
-          d[1] - (originalMinY + originalMaxY) / 2
+    setLoading(true);
+    setPlacedBoxes([]);
+    setReducedData(null);
+    if (baseText !== "") {
+      async function fetchConcentricPositions() {
+        // getDataは、コメントをグループ化して同心円状に配置するための相対座標(0,0基準)を返す
+        const coords = await getData(comments, baseText);
+        const svgWidth = window.innerWidth * 0.7;
+        const svgHeight = window.innerHeight * 0.9;
+        const centerX = svgWidth / 2;
+        const centerY = svgHeight / 2;
+
+        const shiftedPos = coords.map(d => [
+          centerX + d[0],
+          centerY + d[1]
         ]);
         setReducedData(shiftedPos);
-      } else {
-        setReducedData(reduced);
+        // 中央テキストの設定：svg中央に配置
+        setCenter({ x: 0, y: 0 });
+        setCenterText({ x: centerX - 50, y: centerY - 20, width: 100, height: 40 });
       }
+      fetchConcentricPositions();
+    } else {
+      async function fetchAndProcessData() {
+        const embeddings = await getData(comments, baseText);
+        const reduced = reduceDimensions(embeddings);
+        if (reduced && reduced.length > 0) {
+          const originalXs = reduced.map(d => d[0]);
+          const originalYs = reduced.map(d => d[1]);
+          const originalMinX = Math.min(...originalXs);
+          const originalMaxX = Math.max(...originalXs);
+          const originalMinY = Math.min(...originalYs);
+          const originalMaxY = Math.max(...originalYs);
+          // 中心が原点になるように各点をシフト
+          const shiftedPos = reduced.map(d => [
+            d[0] - (originalMinX + originalMaxX) / 2,
+            d[1] - (originalMinY + originalMaxY) / 2
+          ]);
+          setReducedData(shiftedPos);
+        } else {
+          setReducedData(reduced);
+        }
+      }
+      fetchAndProcessData();
     }
-    fetchAndProcessData();
   }, [comments, baseText]);
 
   const xs = useMemo(() => {
@@ -65,7 +97,9 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
 
   // レンダリング中に実行しないよう、useEffect内で中心を更新
   useEffect(() => {
-    setCenter({ x: (minX + maxX) / 2, y: (minY + maxY) / 2 });
+    if (baseText =="") {
+      setCenter({ x: (minX + maxX) / 2, y: (minY + maxY) / 2 });
+    }
   }, [minX, maxX, minY, maxY]);
 
   // クラスタリング処理
@@ -120,6 +154,7 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
 
   // 初回配置：reducedDataおよびクラスタグループが更新されたときに配置を計算
   useEffect(() => {
+    setLoading(true);
     if (reducedData) {
       const newBoxes: Box[] = [];
       for (const [clusterId, indices] of Object.entries(clusterGroups)) {
@@ -153,6 +188,7 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
       }
       setPlacedBoxes(newBoxes);
     }
+    setLoading(false);
   }, [reducedData, clusterGroups, xs, ys, comments]);
 
   // マウスホイールでのズーム処理
@@ -177,8 +213,14 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
         commentY: center.y + (box.commentY - center.y) * scaleFactor,
       }))
     );
+    setCenterText(prevCenterText => ({
+      x: center.x + (prevCenterText.x - center.x) * scaleFactor,
+      y: center.y + (prevCenterText.y - center.y) * scaleFactor,
+      width: prevCenterText.width * scaleFactor,
+      height: prevCenterText.height * scaleFactor,
+    }))
     zoomScale = newZoom;
-  }, [center]);
+  }, []);
 
   // ドラッグ開始
   const handleMouseDown = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -208,6 +250,11 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
           commentY: box.commentY + dy,
         }))
       );
+      setCenterText(prevCenterText => ({
+        ...prevCenterText,
+        x: prevCenterText.x + dx,
+        y: prevCenterText.y + dy,
+      }))
       // 更新後の位置を基準にするため dragStart も更新
       setDragStart({ x: e.clientX, y: e.clientY });
     }
@@ -224,7 +271,7 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
   return (
     <div className="w-70vw h-full">
       <div className="flex justify-center">
-        {!reducedData ? (
+        {loading ? (
           <p>Loading...</p>
         ) : (
           <svg
@@ -264,13 +311,13 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
               {baseText !== "" &&
                 placedBoxes.map((box, index) => {
                   const centerBox = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
-                  const distanceToBase = Math.hypot(centerBox.x, centerBox.y);
+                  const distanceToBase = Math.hypot(centerBox.x - centerText.x - centerText.width / 2, centerBox.y - centerText.y - centerText.height / 2); 
                   if (distanceToBase < linkThreshold) {
                     return (
                       <line
                         key={`link-base-${index}`}
-                        x1={0}
-                        y1={0}
+                        x1={centerText.x + centerText.width / 2}
+                        y1={centerText.y + centerText.height / 2}
                         x2={centerBox.x}
                         y2={centerBox.y}
                         stroke="gray"
@@ -286,17 +333,17 @@ export default function CommentGraph({ comments, baseText }: { comments: string[
               {baseText !== "" ? (
                 <g>
                   <rect
-                    x={-50}
-                    y={-20}
-                    width={100}
-                    height={40}
-                    fill="white"
+                    x={centerText.x}
+                    y={centerText.y}
+                    width={centerText.width}
+                    height={centerText.height}
+                    fill="gray"
                     stroke="black"
                     strokeWidth={1}
                   />
                   <text
-                    x={0}
-                    y={0}
+                    x={centerText.x + centerText.width / 2}
+                    y={centerText.y + centerText.height / 2}
                     dominantBaseline="middle"
                     textAnchor="middle"
                     fill="black"

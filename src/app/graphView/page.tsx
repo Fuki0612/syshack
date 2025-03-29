@@ -1,4 +1,5 @@
 import CommentGraph from "./graph"
+import GraphHeader from "./header";
 
 export default async function graphView ({ searchParams }: {
   searchParams: { videoId?: string; base?: string };
@@ -77,18 +78,7 @@ export default async function graphView ({ searchParams }: {
 
   return (
     <div className="flex flex-col min-h-screen w-screen h-screen overflow-hidden pt-1">
-      <div className="flex h-[10vh] justify-center items-center p-0">
-        <h1 className="text-center text-2xl font-bold">
-          {videoTitle}
-        </h1>
-        <div className="content-center relative w-1/3 px-10 my-auto h-full">
-          <input
-            type="text"
-            placeholder="search"
-            className=" h-1/3 w-full px-4 placeholder:text-indigo-300 rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none"
-          />
-        </div>
-      </div>
+      <GraphHeader videoTitle={videoTitle} />
       <div className="w-100vw flex right-0 left-0 mx-auto">
         <div className="w-[30vw] h-full m-0 p-0">
           <iframe
