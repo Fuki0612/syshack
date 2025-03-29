@@ -2,36 +2,46 @@
 
 import Image from 'next/image';
 import { zenkakugothicnew } from "../font";
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
+import { IoSearchOutline } from "react-icons/io5";
+import { IconContext } from 'react-icons'
 
 export default function Home() {
   const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
   const [loading, setLoading] = useState<boolean>(true);
   const [videos, setVideos] = useState([]);
   const [now, setNow] = useState('急上昇');
-  const [cat, setCat] = useState<string>('');
+  const [vidorsea, setVidorsea] = useState<string>('videos')
+  const [cat, setCat] = useState<string>('chart=mostPopular&videoCategoryId=0');
   const [searchParams, setSearchParams] = useState<string>('');
-  const handleClick = (category: string = '急上昇') => {
+  const handleClick = (category: string) => {
     switch (category) {
       case '急上昇':
         setCat('chart=mostPopular&videoCategoryId=0');
         setNow('急上昇');
+        setVidorsea('videos');
         break;
       case 'スポーツ':
         setCat('chart=mostPopular&videoCategoryId=17');
         setNow('スポーツ');
+        setVidorsea('videos');
         break;
       case '音楽':
         setCat('chart=mostPopular&videoCategoryId=10');
         setNow('音楽');
+        setVidorsea('videos');
         break;
       case 'ゲーム':
         setCat('chart=mostPopular&videoCategoryId=20');
         setNow('ゲーム');
+        setVidorsea('videos');
+        break;
+      case '':
         break;
       default:
         setCat(`q=${searchParams}`);
         setNow('other');
+        setVidorsea('search');
         break;
     }
   }
@@ -43,10 +53,9 @@ export default function Home() {
       if (!API_KEY) {
         return <div>APIキーが設定されていません</div>    
       }
-
+console.log("asdf");
       const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&part=snippet&type=video&regionCode=JP&maxResults=4&${cat}`,
-        // `https://www.googleapis.com/youtube/v3/search?key=${API_KEY}&part=snippet&type=video&regionCode=JP&maxResults=4&chart=mostPopular&videoCategoryId=0`,
+        `https://www.googleapis.com/youtube/v3/${vidorsea}?key=${API_KEY}&part=snippet&type=video&regionCode=JP&maxResults=2&${cat}`,
         { next: { revalidate: 60 } }
       )
 
@@ -56,7 +65,6 @@ export default function Home() {
       }
       
       const data = await res.json();
-      console.log(data)
       setVideos(data.items);
 
       if (!videos) {
@@ -66,45 +74,53 @@ export default function Home() {
       setLoading(false)
     }
     getData()
-  }, [cat])
 
-  if (loading) {
-    return <div className={`${zenkakugothicnew.className} text-2xl`}>Loading...</div>
-  }
+  }, [cat])
   
   return (
     <div className={`${zenkakugothicnew.className} flex flex-col min-h-screen w-screen p-15 justify-center items-center bg-white`}>
       <div className="flex flex-col fixed top-0 z-50 bg-indigo-50/70 backdrop-blur-lg w-screen">
-      <div className="grid grid-cols-[1fr_20fr_9fr] gap-4 h-12">
-        <div></div>
-        <div className="w-full relative h-12 text-3xl items-center content-center font-bold">
-          {/* <Image
-            alt="logo"
-            src="/button_channel_touroku.png"
-            layout="fill"
-            objectFit="cover"
-          /> */}
-          Youtube
-        </div>
-        <div className="grid grid-cols-[3fr_1fr] content-center items-center relative px-7">
+        <div className='flex mx-10 justify-between'>
+          <div className='flex flex-col justify-center items-center'>
+            <div className="w-full relative h-12 text-3xl text-center content-center font-bold">
+              {/* <Image
+                alt="logo"
+                src="/button_channel_touroku.png"
+                layout="fill"
+                objectFit="cover"
+              /> */}
+              Youtube
+            </div>
+            <div className="flex flex-row gap-2 content-center h-10 p-1.5 pl-6 top-12">
+              <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 hover:cursor-pointer ${now == '急上昇' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('急上昇')}>急上昇</button>
+              <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 hover:cursor-pointer ${now == 'スポーツ' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('スポーツ')}>スポーツ</button>
+              <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 hover:cursor-pointer ${now == '音楽' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('音楽')}>音楽</button>
+              <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 hover:cursor-pointer ${now == 'ゲーム' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('ゲーム')}>ゲーム</button>
+            </div>
+          </div>
+          <form className="flex my-auto gap-3 w-[30%]" action={() => handleClick(searchParams)}>
             <input
               type="search"
-              name="search"
+              name="q"
               value={searchParams}
               onChange={(e) => {setSearchParams(e.target.value)}}
               placeholder="search"
-              className=" w-full pl-4 pr-4 placeholder:text-indigo-300 rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none"
+              className=" w-full h-10 px-4 placeholder:text-indigo-300 rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none"
             />
-            <button type="submit" onClick={() => handleClick(searchParams)} className="w-full h-7 text-xs rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none">検索</button>
+            <IconContext.Provider value={{ color: 'oklch(0.585 0.233 277.117)'}}>
+              <button type="submit" onClick={() => handleClick(searchParams)} className="flex justify-center items-center h-10 w-14 rounded-full bg-white/70 border-1 shadow-xs shadow-indigo-300/50 border-indigo-300 focus:border-indigo-500 focus:outline-none hover:cursor-pointer"><IoSearchOutline /></button>
+            </IconContext.Provider>
+          </form>
+        </div>
       </div>
-      </div>
-      <div className="flex flex-row gap-2 content-center h-10 p-1.5 pl-6 top-12">
-        <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 ${now == '急上昇' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('急上昇')}>急上昇</button>
-        <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 ${now == 'スポーツ' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('スポーツ')}>スポーツ</button>
-        <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 ${now == '音楽' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('音楽')}>音楽</button>
-        <button className={`px-2 py-1 text-sm text-white rounded-lg hover:bg-indigo-400 ${now == 'ゲーム' ? 'bg-indigo-500 hover:bg-indigo-500' : 'bg-indigo-300'}`} onClick={() => handleClick('ゲーム')}>ゲーム</button>
-      </div>
-      </div>
+      {loading ?
+      <div className="flex justify-center">
+      <div
+        className="w-20 h-20 rounded-full border-10 border-indigo-300 animate-spin"
+        style={{ borderTopColor: 'transparent' }}
+      />
+    </div>
+      :
       <div className="grid grid-cols-2 gap-5 pt-10">
         {videos.map((video: { id: string; snippet: { title: string; channelTitle: string; thumbnails: { high: { url: string } } } }) => (
           <div key={video.id} className="flex flex-col items-center gap-2">
@@ -124,13 +140,11 @@ export default function Home() {
             <p className="text-lg text-gray-600">チャンネル: {video.snippet.channelTitle}</p>
           </div>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }
 // console.log("APIキー:", process.env.YOUTUBE_API_KEY);
-
-
 
 
 
