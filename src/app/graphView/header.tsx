@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FaLocationArrow } from "react-icons/fa";
+import { TfiBackRight } from "react-icons/tfi";
 
 export default function GraphHeader({ videoTitle }: { videoTitle: string }) {
   const [query, setQuery] = useState("");
@@ -20,6 +21,12 @@ export default function GraphHeader({ videoTitle }: { videoTitle: string }) {
 
   return (
     <div className="flex h-[10vh] justify-center items-center p-0">
+      <div className="p-0 pl-3 m-2 ">
+        <TfiBackRight
+          className="text-indigo-500 hover:cursor-pointer w-7 h-7"
+          onClick={() => router.back()}
+        />
+      </div>
       <h1 className="text-center text-2xl font-bold">
         {videoTitle}
       </h1>

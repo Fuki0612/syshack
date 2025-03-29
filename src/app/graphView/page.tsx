@@ -5,6 +5,7 @@ export default async function graphView ({ searchParams }: {
   searchParams: { videoId?: string; base?: string };
 }) {
   const params = await Promise.resolve(searchParams);
+  // const [videos, setVideos] = useState([]);
   
   const videoId = params.videoId;
   if (!videoId) {

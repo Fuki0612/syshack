@@ -2,7 +2,8 @@
 
 import Image from 'next/image';
 import { zenkakugothicnew } from "../font";
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const API_KEY = process.env.NEXT_PUBLIC_YOUTUBE_API_KEY;
@@ -10,6 +11,7 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [now, setNow] = useState('急上昇');
   const [cat, setCat] = useState<string>('0')
+  const router = useRouter()
   const handleClick = (category: string) => {
     switch (category) {
       case '急上昇':
@@ -70,7 +72,7 @@ export default function Home() {
   
   return (
     <div className={`${zenkakugothicnew.className} flex flex-col min-h-screen w-screen p-20 justify-center items-center bg-white`}>
-      <div className="flex flex-col fixed top-0 z-50 bg-indigo-50/70 backdrop-blur-lg w-screen">
+      <div className="flex flex-col fixed top-0 z-50 bg-indigo-50/70 backdrop-blur-lg w-full">
       <div className="grid grid-cols-[1fr_20fr_9fr] gap-4 h-12">
         <div></div>
         <div className="w-full relative h-12 text-3xl content-center font-bold">
@@ -101,7 +103,11 @@ export default function Home() {
         {videos.map((video: { id: string; snippet: { title: string; channelTitle: string; thumbnails: { high: { url: string } } } }) => (
           <div key={video.id} className="flex flex-col items-center gap-2">
             {/* サムネイル */}
-            <div style={{ width: "100%", position: "relative", paddingBottom: "56.25%" }}>
+            <button style={{ width: "100%", position: "relative", paddingBottom: "56.25%" }}
+              onClick={() => {
+                router.push(`/graphView/?videoId=${video.id}`);
+              }}
+            >
               <Image
                 alt={video.snippet.title}
                 src={video.snippet.thumbnails.high.url}
@@ -109,7 +115,7 @@ export default function Home() {
                 objectFit="cover"
                 className="rounded-lg shadow-lg"
               />
-            </div>
+            </button>
             {/* タイトル */}
             <p className="text-2xl font-bold text-center">{video.snippet.title}</p>
             {/* チャンネル名 */}
